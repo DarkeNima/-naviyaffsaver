@@ -4,40 +4,46 @@ import urllib.request
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        self.handle_all()
+        self.send_final_response()
 
     def do_POST(self):
-        self.handle_all()
+        # Game එකෙන් එන දත්ත කියවා අවසන් කිරීම (Vercel crash වීම වැළැක්වීමට)
+        content_length = int(self.headers.get('Content-Length', 0))
+        if content_length > 0:
+            self.rfile.read(content_length)
+        self.send_final_response()
 
-    def handle_all(self):
+    def send_final_response(self):
         try:
-            # 1. Garena smeta එක ලබා ගැනීම
+            # 1. Garena නිල දත්ත ලබා ගැනීම
             smeta_url = "https://version.freefire.info/public/smeta"
-            headers = {'User-Agent': 'okhttp/4.9.1'} # APK එකේ පාවිච්චි කරන version එක
+            req = urllib.request.Request(smeta_url, headers={'User-Agent': 'okhttp/4.9.1'})
             
-            req = urllib.request.Request(smeta_url, headers=headers)
             with urllib.request.urlopen(req) as response:
-                content = response.read().decode('utf-8')
-                data = json.loads(content)
+                garena_data = json.loads(response.read().decode('utf-8'))
 
-            # 2. IOS Script එකේ සහ APK එකේ Logic එක අනුව සකස් කිරීම
-            # මෙතන s_url එක සහ server_url එක දෙකම දිය යුතුයි
-            data["s_url"] = "https://authsrv.astutech.online/"
-            data["server_url"] = "https://authsrv.astutech.online/"
-            data["status"] = "success"
+            # 2. iOS Script එකේ logic එක අනුව දත්ත සැකසීම
+            # Astutech සර්වර් එකට සම්බන්ධ වීමට අවශ්‍ය දත්ත
+            garena_data["s_url"] = "https://authsrv.astutech.online/"
+            garena_data["server_url"] = "https://authsrv.astutech.online/"
+            garena_data["status"] = "success"
 
-            # 3. Game එකට අවශ්‍ය නිවැරදි response එක යැවීම
+            # 3. Vercel එකෙන් දත්ත යවන විදිහ (මෙතන තමයි වෙනස තියෙන්නේ)
+            response_body = json.dumps(garena_data, ensure_ascii=False).encode('utf-8')
+
             self.send_response(200)
+            # Headers ඉතාම නිවැරදිව ලබා දීම
             self.send_header('Content-Type', 'application/json; charset=utf-8')
-            self.send_header('Connection', 'keep-alive')
+            self.send_header('Content-Length', str(len(response_body)))
+            self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
             
-            self.wfile.write(json.dumps(data).encode('utf-8'))
+            self.wfile.write(response_body)
 
-        except Exception as e:
-            # Error එකක් ආවොත් සරල success message එකක් යවනවා app එක crash නොවී ඉන්න
+        except Exception:
+            # කිසියම් දෝෂයක් වුවහොත් සරල Response එකක් දීම
+            fallback = {"status": "success", "server_url": "https://authsrv.astutech.online/"}
             self.send_response(200)
             self.send_header('Content-Type', 'application/json')
             self.end_headers()
-            err_data = {"status": "success", "server_url": "https://authsrv.astutech.online/"}
-            self.wfile.write(json.dumps(err_data).encode('utf-8'))
+            self.wfile.write(json.dumps(fallback).encode('utf-8'))
