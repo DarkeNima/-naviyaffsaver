@@ -1,45 +1,38 @@
 from http.server import BaseHTTPRequestHandler
-import json
 import urllib.request
 
 class handler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        self.run_logic()
+    def handle_request(self):
+        # Original Astutech server eke URL eka
+        target_url = "https://authsrv.astutech.online" + self.path
         
-    def do_POST(self):
-        # Game එක එවපු POST දත්ත කියවා අවසන් කිරීම (Error එක නතර කිරීමට)
-        try:
-            content_length = int(self.headers.get('Content-Length', 0))
-            if content_length > 0:
-                self.rfile.read(content_length)
-        except:
-            pass
-        self.run_logic()
+        # Game eken ena headers kiyawaa ganeema
+        headers = {key: value for key, value in self.headers.items() if key.lower() != 'host'}
+        
+        # POST daththa thibe nam ewa kiyawaa ganeema
+        content_length = int(self.headers.get('Content-Length', 0))
+        post_data = self.rfile.read(content_length) if content_length > 0 else None
 
-    def run_logic(self):
         try:
-            # Garena එකේ ඇත්තම දත්ත ගැනීම
-            smeta_url = "https://version.freefire.info/public/smeta"
-            req = urllib.request.Request(smeta_url, headers={'User-Agent': 'Mozilla/5.0'})
-            
+            # Original server ekata request eka yawana widiya
+            req = urllib.request.Request(target_url, data=post_data, headers=headers, method=self.command)
             with urllib.request.urlopen(req) as response:
-                garena_data = json.loads(response.read().decode())
-
-            # දත්ත සකස් කිරීම
-            garena_data["s_url"] = "https://authsrv.astutech.online/"
-            garena_data["server_url"] = "https://authsrv.astutech.online/"
-            garena_data["status"] = "success"
-
-            # නිවැරදි Headers යැවීම
-            self.send_response(200)
-            self.send_header('Content-Type', 'application/json')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            
-            self.wfile.write(json.dumps(garena_data).encode('utf-8'))
-
+                # Original server eken ena daththa (Binary/Encrypted) ehemma labaa ganeema
+                res_body = response.read()
+                
+                # Game ekata pilithura yawana widiya
+                self.send_response(response.status)
+                for key, value in response.getheaders():
+                    self.send_header(key, value)
+                self.end_headers()
+                self.wfile.write(res_body)
         except Exception as e:
-            self.send_response(200)
-            self.send_header('Content-Type', 'application/json')
+            self.send_response(500)
             self.end_headers()
-            self.wfile.write(json.dumps({"status": "success", "info": "Navii Fix"}).encode('utf-8'))
+            self.wfile.write(str(e).encode())
+
+    def do_GET(self):
+        self.handle_request()
+
+    def do_POST(self):
+        self.handle_request()
