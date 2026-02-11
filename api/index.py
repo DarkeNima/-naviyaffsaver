@@ -6,11 +6,6 @@ class handler(BaseHTTPRequestHandler):
         self._send_response()
 
     def do_POST(self):
-        # Game එක එවන දත්ත කියවන්න ඕනේ, නැත්නම් Game එක Error දෙනවා
-        content_length = int(self.headers.get('Content-Length', 0))
-        if content_length > 0:
-            post_data = self.rfile.read(content_length)
-        
         self._send_response()
 
     def _send_response(self):
@@ -19,20 +14,17 @@ class handler(BaseHTTPRequestHandler):
         self.send_header('Access-Control-Allow-Origin', '*')
         self.end_headers()
         
-        # Game එකට තේරෙන භාෂාවෙන් (Structure එකෙන්) දත්ත යවමු
-        # "code": 0 කියන්නේ Success කියන එකයි.
+        # ගොඩක් සර්වර් වල සාර්ථක පිළිතුරක් ලැබෙන්නේ මේ සරල ආකාරයටයි
         response_data = {
-            "code": 0,
-            "msg": "success",
+            "status": 0,
+            "message": "success",
             "data": {
-                "uid": "100000001",
-                "token": "access_token_navii",
-                "name": "Navii",
-                "level": 100,
-                "rank": "Grandmaster",
                 "gems": 999999,
                 "gold": 999999,
-                "is_guest": False
+                "diamond": 999999,
+                "level": 100,
+                "exp": 999999,
+                "vip": 10
             }
         }
         
