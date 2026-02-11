@@ -1,58 +1,39 @@
 from http.server import BaseHTTPRequestHandler
-import urllib.request
 import json
+import urllib.request
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        self.proxy_request()
+        self.handle_proxy()
 
     def do_POST(self):
-        self.proxy_request()
+        self.handle_proxy()
 
-    def do_OPTIONS(self):
-        self.send_response(200)
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
-        self.end_headers()
-
-    def proxy_request(self):
-        # අපි සම්බන්ධ වෙන්න ඕනේ ඇත්තම Garena Version Server එක
-        target_url = "https://versions.garenanow.live/live" + self.path
-        
+    def handle_proxy(self):
         try:
-            # Game එකෙන් එන Request එක ඇත්තම සර්වර් එකට යැවීම
-            req = urllib.request.Request(target_url, method=self.command)
-            
-            # POST Request එකක් නම් එහි දත්ත ලබා ගැනීම
-            content_length = int(self.headers.get('Content-Length', 0))
-            if content_length > 0:
-                data = self.rfile.read(content_length)
-                req.data = data
-            
-            # headers පිටපත් කිරීම
-            for key, value in self.headers.items():
-                if key.lower() not in ['host', 'content-length']:
-                    req.add_header(key, value)
+            # 1. ඇත්තම Garena Meta දත්ත ලබා ගැනීම
+            with urllib.request.urlopen("https://version.freefire.info/public/smeta") as response:
+                meta_data = json.loads(response.read().decode())
 
-            # ඇත්තම සර්වර් එකෙන් ලැබෙන පිළිතුර කියවීම
-            with urllib.request.urlopen(req) as response:
-                self.send_response(response.status)
-                
-                # Headers යැවීම
-                for key, value in response.getheaders():
-                    self.send_header(key, value)
-                self.send_header('Access-Control-Allow-Origin', '*')
-                self.end_headers()
-                
-                # දත්ත ටික Game එකට යැවීම
-                self.wfile.write(response.read())
+            # 2. Game එකට අවශ්‍ය කරන නිවැරදි Response එක සකස් කිරීම
+            # මෙතන 'server_url' එක තමයි වැදගත්ම දේ
+            result = {
+                "server_url": meta_data.get("s_url", "https://authsrv.astutech.online/"),
+                "status": "success",
+                "version": "1.100.x",
+                "patch": "active"
+            }
 
-        except Exception as e:
-            # කිසියම් දෝෂයක් ආවොත් සරල සාර්ථක පිළිතුරක් යැවීම (Backup)
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
-            backup_data = {"status": "success", "message": "Proxy Active"}
-            self.wfile.write(json.dumps(backup_data).encode())
+            
+            self.wfile.write(json.dumps(result).encode())
+
+        except Exception as e:
+            # මොනවා හරි වැරදුනොත් Backup එකක් විදිහට මේක යවනවා
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({"server_url": "https://authsrv.astutech.online/"}).encode())
