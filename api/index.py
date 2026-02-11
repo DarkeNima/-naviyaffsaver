@@ -3,29 +3,33 @@ import json
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        self._send_response()
+        self.respond()
 
     def do_POST(self):
-        self._send_response()
+        # Game එක එවන දත්ත කියවා ඉවත් කිරීම (වැදගත්)
+        content_length = int(self.headers.get('Content-Length', 0))
+        if content_length > 0:
+            self.rfile.read(content_length)
+        self.respond()
 
-    def _send_response(self):
+    def respond(self):
         self.send_response(200)
         self.send_header('Content-type', 'application/json')
         self.send_header('Access-Control-Allow-Origin', '*')
         self.end_headers()
-        
-        # ගොඩක් සර්වර් වල සාර්ථක පිළිතුරක් ලැබෙන්නේ මේ සරල ආකාරයටයි
-        response_data = {
-            "status": 0,
-            "message": "success",
-            "data": {
+
+        # Login Failed: 4 දෝෂය මඟහරින නිවැරදි දත්ත සැකැස්ම
+        data = {
+            "error": 0,
+            "access_token": "navii_vip_token_12345",
+            "open_id": "123456789",
+            "expires_in": 360000,
+            "user_info": {
+                "name": "Navii",
                 "gems": 999999,
                 "gold": 999999,
-                "diamond": 999999,
-                "level": 100,
-                "exp": 999999,
-                "vip": 10
+                "level": 100
             }
         }
         
-        self.wfile.write(json.dumps(response_data).encode())
+        self.wfile.write(json.dumps(data).encode())
