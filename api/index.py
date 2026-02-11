@@ -13,20 +13,27 @@ class handler(BaseHTTPRequestHandler):
         self.send_header('Access-Control-Allow-Origin', '*')
         self.end_headers()
         
-        # FF Game එක සාමාන්‍යයෙන් බලාපොරොත්තු වන Master Data Format එක
-        master_data = {
-            "code": 0,
-            "msg": "success",
+        # Astutech සර්වර් එකේ වගේ Skin/Emote Config එකක්
+        config_data = {
+            "status": "success",
             "data": {
-                "diamond": 999999,
-                "gold": 999999,
-                "gem": 999999,
-                "cash": 999999,
-                "level": 100,
-                "rank": 99,
-                "badge": 999,
-                "exp": 999999
+                "user": {"name": "Navii_VIP", "level": 100},
+                "unlock_config": {
+                    "all_skins": True,
+                    "all_emotes": True,
+                    "all_bundles": True,
+                    "anti_ban": True
+                },
+                "items": [
+                    {"id": "101", "name": "Sakura Bundle", "status": 1},
+                    {"id": "201", "name": "Hip Hop Bundle", "status": 1},
+                    {"id": "501", "name": "Flag Emote", "status": 1}
+                ],
+                "server_key": "active_session_navii_777"
             },
-            "status": 200
+            "config": {
+                "show_skins_to_user": True,
+                "enable_mods": True
+            }
         }
-        self.wfile.write(json.dumps(master_data).encode())
+        self.wfile.write(json.dumps(config_data).encode())
